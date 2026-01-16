@@ -77,18 +77,45 @@ export class SlideMapper {
    * Search for element in slide
    */
   private findElementInSlide(slide: ParsedSlide, issue: Issue): { line: number; lineEnd: number; content: string } | null {
-    // Search based on tag name
+    const tag = issue.element.tag;
+    const text = issue.element.text;
+
+    // For list items, use specialized list item finder
+    if (tag === 'li' && text) {
+      const found = this.parser.findListItem(slide.content, text, slide.startLine);
+      if (found) {
+        return found;
+      }
+    }
+
+    // For paragraphs, use specialized paragraph finder
+    if (tag === 'p' && text) {
+      const found = this.parser.findParagraph(slide.content, text, slide.startLine);
+      if (found) {
+        return found;
+      }
+    }
+
+    // For inline elements (strong, em, code, a), search by text content first
+    const inlineElements = ['strong', 'em', 'span', 'a', 'code'];
+    if (inlineElements.includes(tag) && text) {
+      const found = this.parser.findElementByText(slide.content, text, slide.startLine);
+      if (found) {
+        return found;
+      }
+    }
+
+    // Search based on tag name for block elements
     const tagMap: { [key: string]: string } = {
       h1: 'h1',
       h2: 'h2',
       h3: 'h3',
+      h4: 'h3',  // Fallback to h3 search
       img: 'img',
       pre: 'code',
-      code: 'code',
-      div: 'div',
     };
 
-    const searchType = tagMap[issue.element.tag];
+    const searchType = tagMap[tag];
     if (searchType) {
       const found = this.parser.findElementInSlide(slide.content, searchType, slide.startLine);
       if (found) {
@@ -96,9 +123,18 @@ export class SlideMapper {
       }
     }
 
+    // For images, also check src attribute
+    if (tag === 'img' && issue.element.src) {
+      const imgSrc = issue.element.src.split('/').pop() || '';
+      const found = this.parser.findElementByText(slide.content, imgSrc, slide.startLine);
+      if (found) {
+        return found;
+      }
+    }
+
     // If not found by tag name, search by text content
-    if (issue.element.text) {
-      const found = this.parser.findElementByText(slide.content, issue.element.text, slide.startLine);
+    if (text) {
+      const found = this.parser.findElementByText(slide.content, text, slide.startLine);
       if (found) {
         return found;
       }

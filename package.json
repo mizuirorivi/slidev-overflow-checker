@@ -9,7 +9,7 @@
   "type": "module",
   "scripts": {
     "dev": "tsup && node dist/cli.js",
-    "build": "tsup",
+    "build": "tsup && chmod +x dist/cli.js",
     "build:types": "tsc --emitDeclarationOnly",
     "test": "vitest",
     "test:ui": "vitest --ui",

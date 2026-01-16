@@ -69,10 +69,10 @@ export class ConsoleReporter {
 
       if (issue.element.text) {
         const truncated =
-          issue.element.text.length > 60
-            ? issue.element.text.substring(0, 60) + '...'
+          issue.element.text.length > 80
+            ? issue.element.text.substring(0, 80) + '...'
             : issue.element.text;
-        console.log(chalk.gray(`      Text: "${truncated}"`));
+        console.log(chalk.red(`      Overflowing text: "${truncated}"`));
       }
     } else if (issue.type === 'element-overflow') {
       const bounds = issue.details.slideBounds;
@@ -102,8 +102,16 @@ export class ConsoleReporter {
         console.log(chalk.gray(`      Overflow: ${overflows.join(', ')}`));
       }
 
+      if (issue.element.text) {
+        const truncated =
+          issue.element.text.length > 80
+            ? issue.element.text.substring(0, 80) + '...'
+            : issue.element.text;
+        console.log(chalk.red(`      Content: "${truncated}"`));
+      }
+
       if (issue.element.src) {
-        console.log(chalk.gray(`      Source: ${issue.element.src}`));
+        console.log(chalk.gray(`      Image source: ${issue.element.src}`));
       }
     } else if (issue.type === 'scrollbar') {
       console.log(

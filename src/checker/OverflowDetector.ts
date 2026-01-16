@@ -139,7 +139,9 @@ export class OverflowDetector {
             }
           }
 
-          if (overflowX > threshold || overflowY > threshold) {
+          // Only report horizontal overflow for text-overflow detection
+          // Vertical overflow is handled by element-overflow detection
+          if (overflowX > threshold) {
             // Generate CSS selector
             let selector = element.tagName.toLowerCase();
             if (element.id) {
@@ -151,6 +153,16 @@ export class OverflowDetector {
               }
             }
 
+            // Get the actual text content that is overflowing
+            // For better identification, get all direct text content
+            let overflowingText = '';
+            for (const node of Array.from(element.childNodes)) {
+              if (node.nodeType === Node.TEXT_NODE && node.textContent?.trim()) {
+                overflowingText += node.textContent.trim() + ' ';
+              }
+            }
+            overflowingText = overflowingText.trim() || element.textContent?.trim() || '';
+
             results.push({
               type: 'text-overflow',
               element: {
@@ -158,7 +170,7 @@ export class OverflowDetector {
                 class: element.className || undefined,
                 id: element.id || undefined,
                 selector,
-                text: element.textContent?.substring(0, 50) || undefined,
+                text: overflowingText.substring(0, 100) || undefined,
               },
               details: {
                 containerWidth,
@@ -309,15 +321,34 @@ export class OverflowDetector {
               }
             }
 
+            // Get text content for better source mapping
+            let textContent = '';
+            // For list items and paragraphs, get direct text content
+            const tagLower = element.tagName.toLowerCase();
+            if (['li', 'p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'td', 'th', 'span', 'strong', 'em'].includes(tagLower)) {
+              // Get direct text nodes first
+              for (const node of Array.from(element.childNodes)) {
+                if (node.nodeType === Node.TEXT_NODE && node.textContent?.trim()) {
+                  textContent += node.textContent.trim() + ' ';
+                }
+              }
+              textContent = textContent.trim();
+              // If no direct text, use textContent
+              if (!textContent) {
+                textContent = element.textContent?.trim().substring(0, 100) || '';
+              }
+            }
+
             const elementInfo: any = {
-              tag: element.tagName.toLowerCase(),
+              tag: tagLower,
               class: element.className || undefined,
               id: element.id || undefined,
               selector,
+              text: textContent.substring(0, 100) || undefined,
             };
 
             // Add src for img elements
-            if (element.tagName.toLowerCase() === 'img') {
+            if (tagLower === 'img') {
               elementInfo.src = (element as HTMLImageElement).src;
             }
 

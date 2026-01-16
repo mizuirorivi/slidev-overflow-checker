@@ -236,10 +236,97 @@ export class MarkdownParser {
    */
   findElementByText(slideContent: string, text: string, slideStartLine: number): FoundElement | null {
     const lines = slideContent.split('\n');
-    const searchText = text.trim().substring(0, 50); // Search with first 50 characters
+    // Clean up the search text - remove markdown formatting for better matching
+    let searchText = text.trim();
+
+    // Try progressively shorter search strings for better matching
+    const searchLengths = [100, 50, 30, 20];
+
+    for (const length of searchLengths) {
+      const truncatedSearch = searchText.substring(0, length);
+      if (truncatedSearch.length < 5) continue;
+
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        // Skip frontmatter separators and empty lines
+        if (line.trim() === '---' || line.trim() === '') continue;
+
+        // Clean up both for comparison
+        const cleanLine = this.stripMarkdownFormatting(line);
+        const cleanSearch = this.stripMarkdownFormatting(truncatedSearch);
+
+        if (cleanLine.includes(cleanSearch)) {
+          return {
+            line: slideStartLine + i,
+            lineEnd: slideStartLine + i,
+            content: lines[i],
+          };
+        }
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * Strip markdown formatting for text comparison
+   */
+  private stripMarkdownFormatting(text: string): string {
+    return text
+      .replace(/\*\*([^*]+)\*\*/g, '$1')  // **bold**
+      .replace(/\*([^*]+)\*/g, '$1')       // *italic*
+      .replace(/__([^_]+)__/g, '$1')       // __bold__
+      .replace(/_([^_]+)_/g, '$1')         // _italic_
+      .replace(/`([^`]+)`/g, '$1')         // `code`
+      .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')  // [link](url)
+      .replace(/^[-*+]\s+/, '')            // list markers
+      .replace(/^\d+\.\s+/, '')            // numbered list markers
+      .replace(/^#+\s+/, '')               // heading markers
+      .trim();
+  }
+
+  /**
+   * Find list item by its text content
+   */
+  findListItem(slideContent: string, text: string, slideStartLine: number): FoundElement | null {
+    const lines = slideContent.split('\n');
+    const cleanSearch = this.stripMarkdownFormatting(text.trim().substring(0, 50));
 
     for (let i = 0; i < lines.length; i++) {
-      if (lines[i].includes(searchText)) {
+      const line = lines[i];
+      // Check if this is a list item
+      if (/^[-*+]\s+/.test(line) || /^\d+\.\s+/.test(line)) {
+        const cleanLine = this.stripMarkdownFormatting(line);
+        if (cleanLine.includes(cleanSearch)) {
+          return {
+            line: slideStartLine + i,
+            lineEnd: slideStartLine + i,
+            content: lines[i],
+          };
+        }
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * Find paragraph by its text content
+   */
+  findParagraph(slideContent: string, text: string, slideStartLine: number): FoundElement | null {
+    const lines = slideContent.split('\n');
+    const cleanSearch = this.stripMarkdownFormatting(text.trim().substring(0, 50));
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      // Skip headings, list items, code blocks, and empty lines
+      if (line.startsWith('#') || /^[-*+]\s+/.test(line) || /^\d+\.\s+/.test(line) ||
+          line.trim().startsWith('```') || line.trim() === '' || line.trim() === '---') {
+        continue;
+      }
+
+      const cleanLine = this.stripMarkdownFormatting(line);
+      if (cleanLine.includes(cleanSearch)) {
         return {
           line: slideStartLine + i,
           lineEnd: slideStartLine + i,
