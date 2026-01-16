@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Slidev Overflow Check Report</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+      line-height: 1.6;
+      color: #333;
+      background: #f5f5f5;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      padding: 40px;
+    }
+
+    h1 {
+      color: #2c3e50;
+      margin-bottom: 10px;
+      font-size: 32px;
+    }
+
+    .timestamp {
+      color: #7f8c8d;
+      margin-bottom: 30px;
+      font-size: 14px;
+    }
+
+    .summary {
+      background: #ecf0f1;
+      padding: 20px;
+      border-radius: 6px;
+      margin-bottom: 30px;
+    }
+
+    .summary h2 {
+      font-size: 20px;
+      margin-bottom: 15px;
+      color: #2c3e50;
+    }
+
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+    }
+
+    .summary-item {
+      background: white;
+      padding: 15px;
+      border-radius: 4px;
+    }
+
+    .summary-label {
+      font-size: 12px;
+      color: #7f8c8d;
+      text-transform: uppercase;
+      margin-bottom: 5px;
+    }
+
+    .summary-value {
+      font-size: 24px;
+      font-weight: bold;
+    }
+
+    .summary-value.success {
+      color: #27ae60;
+    }
+
+    .summary-value.warning {
+      color: #f39c12;
+    }
+
+    .summary-value.error {
+      color: #e74c3c;
+    }
+
+    .slide-list {
+      margin-top: 30px;
+    }
+
+    .slide-card {
+      background: white;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      margin-bottom: 20px;
+      overflow: hidden;
+    }
+
+    .slide-header {
+      background: #34495e;
+      color: white;
+      padding: 15px 20px;
+      font-weight: 600;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .slide-content {
+      padding: 20px;
+    }
+
+    .issue {
+      background: #fff3cd;
+      border-left: 4px solid #f39c12;
+      padding: 15px;
+      margin-bottom: 15px;
+      border-radius: 4px;
+    }
+
+    .issue:last-child {
+      margin-bottom: 0;
+    }
+
+    .issue-type {
+      font-weight: 600;
+      color: #856404;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+    }
+
+    .issue-type::before {
+      content: '⚠';
+      margin-right: 8px;
+      font-size: 18px;
+    }
+
+    .issue-details {
+      font-size: 14px;
+      color: #666;
+      margin-left: 26px;
+    }
+
+    .issue-detail-item {
+      margin-bottom: 5px;
+    }
+
+    .issue-source {
+      background: #f8f9fa;
+      border-left: 3px solid #007bff;
+      padding: 10px;
+      margin-top: 10px;
+      font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+      font-size: 13px;
+      margin-left: 26px;
+    }
+
+    .source-file {
+      color: #007bff;
+      font-weight: 600;
+      margin-bottom: 5px;
+    }
+
+    .source-code {
+      color: #495057;
+      white-space: pre-wrap;
+      margin-top: 5px;
+    }
+
+    .no-issues {
+      text-align: center;
+      padding: 60px 20px;
+      color: #27ae60;
+    }
+
+    .no-issues h2 {
+      font-size: 48px;
+      margin-bottom: 10px;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .badge.warning {
+      background: #f39c12;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Slidev Overflow Check Report</h1>
+    <div class="timestamp">Generated: {{timestamp}}</div>
+
+    <div class="summary">
+      <h2>Summary</h2>
+      <div class="summary-grid">
+        <div class="summary-item">
+          <div class="summary-label">Total Slides</div>
+          <div class="summary-value">{{totalSlides}}</div>
+        </div>
+        <div class="summary-item">
+          <div class="summary-label">Slides with Issues</div>
+          <div class="summary-value {{issuesClass}}">{{slidesWithIssuesCount}}</div>
+        </div>
+        <div class="summary-item">
+          <div class="summary-label">Total Issues</div>
+          <div class="summary-value {{issuesClass}}">{{issuesFound}}</div>
+        </div>
+      </div>
+    </div>
+
+    {{#if hasIssues}}
+    <div class="slide-list">
+      <h2>Issues by Slide</h2>
+      {{#each slides}}
+      <div class="slide-card">
+        <div class="slide-header">
+          <span>Slide {{page}}</span>
+          <span class="badge warning">{{issueCount}} issue{{#if multiple}}s{{/if}}</span>
+        </div>
+        <div class="slide-content">
+          {{#each issues}}
+          <div class="issue">
+            <div class="issue-type">{{typeMessage}}</div>
+            <div class="issue-details">
+              <div class="issue-detail-item"><strong>Element:</strong> {{element.tag}}{{#if element.class}}.{{element.class}}{{/if}}</div>
+              <div class="issue-detail-item"><strong>Selector:</strong> {{element.selector}}</div>
+              {{#if details.containerWidth}}
+              <div class="issue-detail-item"><strong>Container:</strong> {{details.containerWidth}}px × {{details.containerHeight}}px</div>
+              <div class="issue-detail-item"><strong>Content:</strong> {{details.contentWidth}}px × {{details.contentHeight}}px</div>
+              <div class="issue-detail-item"><strong>Overflow:</strong> {{details.overflowX}}px (horizontal), {{details.overflowY}}px (vertical)</div>
+              {{/if}}
+              {{#if element.text}}
+              <div class="issue-detail-item"><strong>Text:</strong> "{{element.text}}"</div>
+              {{/if}}
+            </div>
+            {{#if source}}
+            <div class="issue-source">
+              <div class="source-file">{{source.file}}:{{source.line}}{{#if source.lineEnd}}-{{source.lineEnd}}{{/if}}</div>
+              <div class="source-code">{{source.content}}</div>
+            </div>
+            {{/if}}
+          </div>
+          {{/each}}
+        </div>
+      </div>
+      {{/each}}
+    </div>
+    {{else}}
+    <div class="no-issues">
+      <h2>🎉</h2>
+      <p>No overflow issues found!</p>
+    </div>
+    {{/if}}
+  </div>
+</body>
+</html>

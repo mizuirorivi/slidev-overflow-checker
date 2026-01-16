@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Test Slidev Presentation</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: Arial, sans-serif;
+    }
+
+    .slidev-page {
+      width: 980px;
+      height: 552px;
+      position: relative;
+      display: none;
+      border: 1px solid #ccc;
+      padding: 20px;
+      box-sizing: border-box;
+    }
+
+    .slidev-page.active {
+      display: block;
+    }
+
+    h1 {
+      margin: 0 0 20px 0;
+      font-size: 48px;
+    }
+
+    .overflow-text {
+      width: 300px;
+      overflow: hidden;
+    }
+
+    .overflow-text > div {
+      width: 800px;
+      white-space: nowrap;
+    }
+
+    .scrollable-content {
+      width: 400px;
+      height: 200px;
+      overflow: auto;
+      border: 1px solid #ddd;
+    }
+
+    .scrollable-content > p {
+      height: 40px;
+      margin: 10px 0;
+    }
+
+    .slidev-page-indicator {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      font-size: 14px;
+      color: #666;
+    }
+  </style>
+</head>
+<body>
+  <div class="slidev-page-indicator">
+    <span class="slidev-page-number">1</span>
+    <span>/</span>
+    <span>3</span>
+  </div>
+
+  <!-- Slide 1: No issues -->
+  <div class="slidev-page active" data-page="1">
+    <div class="slidev-layout">
+      <h1>Slide 1</h1>
+      <p>This slide has no overflow issues.</p>
+    </div>
+  </div>
+
+  <!-- Slide 2: Text overflow -->
+  <div class="slidev-page" data-page="2">
+    <div class="slidev-layout">
+      <h1>Slide 2</h1>
+      <p style="width: 300px; overflow: hidden; white-space: nowrap;">This is a very long text that will definitely overflow because it is much longer than 300 pixels wide and will be cut off</p>
+    </div>
+  </div>
+
+  <!-- Slide 3: Element overflow - image extends beyond slide bounds -->
+  <div class="slidev-page" data-page="3">
+    <div class="slidev-layout">
+      <h1>Slide 3</h1>
+      <p>This slide has an element that overflows the slide boundary.</p>
+      <!-- This div is positioned to overflow the bottom of the slide -->
+      <div style="position: absolute; bottom: -50px; left: 100px; width: 200px; height: 100px; background: red;">
+        Overflow Element
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Simple navigation
+    let currentSlide = 1;
+    const totalSlides = 3;
+
+    window.$slidev = {
+      nav: {
+        total: 3,
+        go: function(n) {
+          currentSlide = n;
+          updateSlides();
+        }
+      }
+    };
+
+    function updateSlides() {
+      document.querySelectorAll('.slidev-page').forEach((slide, index) => {
+        slide.classList.toggle('active', index === currentSlide - 1);
+      });
+
+      // Update page indicator
+      const pageNumber = document.querySelector('.slidev-page-number');
+      if (pageNumber) {
+        pageNumber.textContent = currentSlide.toString();
+      }
+    }
+
+    // Keyboard navigation
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight' && currentSlide < totalSlides) {
+        currentSlide++;
+        updateSlides();
+      } else if (e.key === 'ArrowLeft' && currentSlide > 1) {
+        currentSlide--;
+        updateSlides();
+      }
+    });
+  </script>
+</body>
+</html>
