@@ -80,6 +80,12 @@ export class OverflowDetector {
                            document.querySelector('.slidev-layout');
         if (!slideLayout) return results;
 
+        // Get the actual visible content boundary from .slidev-slide-content
+        // This element has the scaled dimensions that represent what the user sees
+        const slideContent = document.querySelector('.slidev-slide-content') ||
+                            document.querySelector('#slide-content');
+        const layoutRect = slideContent ? slideContent.getBoundingClientRect() : slideLayout.getBoundingClientRect();
+
         const allElements = slideLayout.querySelectorAll('*');
 
         allElements.forEach((element) => {
@@ -91,21 +97,47 @@ export class OverflowDetector {
           }
 
           const computed = window.getComputedStyle(element);
-          const hasOverflow =
+          const hasOverflowHidden =
             computed.overflow === 'hidden' ||
             computed.overflowX === 'hidden' ||
             computed.overflowY === 'hidden' ||
             computed.textOverflow === 'ellipsis';
 
-          if (!hasOverflow) return;
+          let overflowX = 0;
+          let overflowY = 0;
+          let containerWidth = element.clientWidth;
+          let containerHeight = element.clientHeight;
+          let contentWidth = element.scrollWidth;
+          let contentHeight = element.scrollHeight;
 
-          const scrollWidth = element.scrollWidth;
-          const clientWidth = element.clientWidth;
-          const scrollHeight = element.scrollHeight;
-          const clientHeight = element.clientHeight;
+          // For elements with overflow:hidden, use scrollWidth/scrollHeight
+          if (hasOverflowHidden) {
+            overflowX = Math.max(0, contentWidth - containerWidth);
+            overflowY = Math.max(0, contentHeight - containerHeight);
+          } else {
+            // For elements without overflow:hidden, use Range API to check actual text bounds
+            // Only check elements with direct text nodes
+            const textNodes: Text[] = [];
+            for (const node of Array.from(element.childNodes)) {
+              if (node.nodeType === Node.TEXT_NODE && node.textContent?.trim()) {
+                textNodes.push(node as Text);
+              }
+            }
 
-          const overflowX = Math.max(0, scrollWidth - clientWidth);
-          const overflowY = Math.max(0, scrollHeight - clientHeight);
+            if (textNodes.length > 0) {
+              const range = document.createRange();
+              range.selectNodeContents(element);
+              const rangeRect = range.getBoundingClientRect();
+
+              // Check if text extends beyond layout bounds
+              overflowX = Math.max(0, rangeRect.right - layoutRect.right);
+              overflowY = Math.max(0, rangeRect.bottom - layoutRect.bottom);
+              containerWidth = layoutRect.width;
+              containerHeight = layoutRect.height;
+              contentWidth = rangeRect.width;
+              contentHeight = rangeRect.height;
+            }
+          }
 
           if (overflowX > threshold || overflowY > threshold) {
             // Generate CSS selector
@@ -129,10 +161,10 @@ export class OverflowDetector {
                 text: element.textContent?.substring(0, 50) || undefined,
               },
               details: {
-                containerWidth: clientWidth,
-                containerHeight: clientHeight,
-                contentWidth: scrollWidth,
-                contentHeight: scrollHeight,
+                containerWidth,
+                containerHeight,
+                contentWidth,
+                contentHeight,
                 overflowX,
                 overflowY,
               },
@@ -216,18 +248,21 @@ export class OverflowDetector {
 
         if (!activeSlidePage) return results;
 
-        // Get slide bounds from the slide page element
-        const slideRect = activeSlidePage.getBoundingClientRect();
+        // Find the layout within the active slide
+        const slideLayout = activeSlidePage.querySelector('.slidev-layout');
+        if (!slideLayout) return results;
+
+        // Get the actual visible content boundary from .slidev-slide-content
+        // This element has the scaled dimensions that represent what the user sees
+        const slideContent = document.querySelector('.slidev-slide-content') ||
+                            document.querySelector('#slide-content');
+        const slideRect = slideContent ? slideContent.getBoundingClientRect() : slideLayout.getBoundingClientRect();
         const slideBounds = {
           left: slideRect.left,
           top: slideRect.top,
           right: slideRect.right,
           bottom: slideRect.bottom,
         };
-
-        // Find the layout within the active slide
-        const slideLayout = activeSlidePage.querySelector('.slidev-layout');
-        if (!slideLayout) return results;
 
         const allElements = slideLayout.querySelectorAll('*');
 
