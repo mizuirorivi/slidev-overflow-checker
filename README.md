@@ -1,17 +1,75 @@
 # Slidev Overflow Checker
 
-Automatic content overflow detection tool for Slidev presentations.
+**A visual evaluation tool that detects layout breakage in AI-generated Slidev slides through real browser rendering.**
+
+Slidev Overflow Checker is designed to be used by **AI agents (e.g., Claude Code)**, not just humans.
 
 **[日本語](./README.ja.md)** | **[中文](./README.zh.md)**
 
-## Features
+## Why This Tool Exists
 
-- **3 Types of Overflow Detection**: Automatically detects text overflow, element overflow, and scrollbar appearance
-- **Multiple Output Formats**: Output results in console, HTML, and JSON formats
-- **Flexible Launch Options**: Supports specifying existing URLs or auto-launching Slidev
-- **Visual Reports**: Generate HTML reports with screenshots
-- **Customizable**: Specify detection rules and exclusion conditions via configuration files
-- **CI/CD Ready**: Exit with code 1 when issues are found for CI integration
+LLMs are good at generating text and structure, but **bad at validating visual layout correctness**.
+
+When AI generates Slidev presentations, it often produces:
+- Text that overflows containers
+- Elements that exceed slide boundaries
+- Unintended scrollbars
+
+These issues **cannot be reliably detected from Markdown alone**.
+
+Slidev Overflow Checker solves this by:
+- Rendering slides in a real browser (Playwright)
+- Measuring layout breakage in pixels
+- Returning machine-readable signals for AI to act on
+
+## Intended Usage (AI-first)
+
+This tool is primarily designed to be used as an **external command / skill for AI agents**.
+
+Typical workflow:
+
+1. AI generates or edits Slidev Markdown
+2. AI runs `slidev-overflow-checker`
+3. The checker returns structured JSON
+4. AI analyzes layout issues
+5. AI revises text, splits slides, or adjusts content
+6. Repeat until no layout issues remain
+
+Humans only review the final output.
+
+## Output: Machine-Readable Layout Signals
+
+The JSON output is the **primary interface** of this tool.
+
+```bash
+npx slidev-overflow-checker --url http://localhost:3030 --format json --project ./slides --verbose
+```
+
+It provides:
+- Slide number
+- Issue type (`text-overflow` / `element-overflow` / `scrollbar`)
+- Overflow amount (px)
+- Affected DOM selector
+- Corresponding Markdown source lines (with `--project`)
+
+This allows AI agents to:
+- Decide what to summarize
+- Decide when to split slides
+- Decide which elements to resize or rewrite
+
+## What This Tool Enables
+
+- Converts visual layout breakage into structured signals
+- Makes slide layout correctness testable by AI
+- Bridges the gap between LLMs and rendered output
+- Enables iterative "generate → evaluate → regenerate" loops
+
+## Manual / CI Usage (Optional)
+
+Although AI-first by design, the tool can also be used directly by humans for:
+- Pre-presentation checks
+- CI quality gates
+- Debugging layout issues
 
 ## Installation
 
@@ -25,7 +83,7 @@ Or install locally in your project:
 npm install --save-dev slidev-overflow-checker
 ```
 
-## Usage
+## CLI Usage
 
 ### Basic Usage
 
@@ -122,7 +180,27 @@ Summary:
       - slides.md:49 (img: element overflow)
 ```
 
-This makes it clear **which file and line number needs to be fixed**.
+## CLI Options
+
+| Option | Short | Description | Default |
+|--------|-------|-------------|---------|
+| `--url <url>` | `-u` | URL of the Slidev presentation | - |
+| `--slides <path>` | `-s` | Path to Slidev markdown file | - |
+| `--project <path>` | | Path to Slidev project directory | - |
+| `--pages <range>` | `-p` | Page range to check (e.g., 1-10) | All pages |
+| `--format <formats>` | `-f` | Output formats (console,html,json) | console |
+| `--output <dir>` | `-o` | Output directory | ./reports |
+| `--threshold <n>` | `-t` | Overflow detection threshold (px) | 1 |
+| `--wait <ms>` | `-w` | Wait time after page transition (ms) | 0 |
+| `--viewport <size>` | | Viewport size | 1920x1080 |
+| `--browser <name>` | `-b` | Browser (chromium/firefox/webkit) | chromium |
+| `--headless` | | Headless mode | true |
+| `--verbose` | `-v` | Output detailed logs | false |
+| `--fail-on-issues` | | Exit with code 1 if issues found | false |
+| `--concurrency <n>` | | Number of parallel checks | 4 |
+| `--config <path>` | `-c` | Path to configuration file | - |
+
+## Configuration
 
 ### Configuration File Example
 
@@ -170,86 +248,6 @@ export default {
   }
 }
 ```
-
-## Output Examples
-
-### Console Output (Normal Mode)
-```
-Checking slide 1/20...
-  ✓ No issues found
-
-Checking slide 5/20...
-  ⚠ Text overflow detected
-  ⚠ Element overflow detected
-
-Checking slide 12/20...
-  ⚠ Scrollbar detected
-
-Summary:
-  Total slides: 20
-  Issues found: 3 slides (Slide 5, 12, 18)
-  - Text overflow: 2 slides (Slide 5, 18)
-  - Element overflow: 1 slide (Slide 5)
-  - Scrollbar detected: 1 slide (Slide 12)
-```
-
-### Console Output (Verbose Mode --verbose)
-```
-Checking slide 5/20...
-  ⚠ Text overflow detected:
-    - Element: h1.slide-title
-      Selector: .slidev-page:nth-child(5) > h1.slide-title
-      Container width: 980px
-      Content width: 1250px
-      Overflow: 270px
-      Text: "Introduction to Advanced TypeScript Patterns and Best..."
-
-  ⚠ Element overflow detected:
-    - Element: img.hero-image
-      Selector: .slidev-page:nth-child(5) > .content > img.hero-image
-      Slide bounds: 0, 0, 980, 552
-      Element bounds: 50, 100, 1050, 450
-      Overflow: right 70px
-
-Summary:
-  Total slides: 20
-  Issues found: 3 slides (Slide 5, 12, 18)
-  - Text overflow: 2 slides (Slide 5, 18)
-  - Element overflow: 1 slide (Slide 5)
-  - Scrollbar detected: 1 slide (Slide 12)
-
-Detailed issues by slide:
-  Slide 5: 2 issues (text overflow, element overflow)
-  Slide 12: 1 issue (scrollbar)
-  Slide 18: 1 issue (text overflow)
-```
-
-### HTML Report
-
-A visual report is generated at `./reports/overflow-report-[timestamp].html`.
-It includes screenshots and detailed information for each slide with issues.
-
-## CLI Options
-
-| Option | Short | Description | Default |
-|--------|-------|-------------|---------|
-| `--url <url>` | `-u` | URL of the Slidev presentation | - |
-| `--slides <path>` | `-s` | Path to Slidev markdown file | - |
-| `--project <path>` | | Path to Slidev project directory | - |
-| `--pages <range>` | `-p` | Page range to check (e.g., 1-10) | All pages |
-| `--format <formats>` | `-f` | Output formats (console,html,json) | console |
-| `--output <dir>` | `-o` | Output directory | ./reports |
-| `--threshold <n>` | `-t` | Overflow detection threshold (px) | 1 |
-| `--wait <ms>` | `-w` | Wait time after page transition (ms) | 0 |
-| `--viewport <size>` | | Viewport size | 1920x1080 |
-| `--browser <name>` | `-b` | Browser (chromium/firefox/webkit) | chromium |
-| `--headless` | | Headless mode | true |
-| `--verbose` | `-v` | Output detailed logs | false |
-| `--fail-on-issues` | | Exit with code 1 if issues found | false |
-| `--concurrency <n>` | | Number of parallel checks | 4 |
-| `--config <path>` | `-c` | Path to configuration file | - |
-
-**Note**: When `--project` is specified, corresponding Markdown source line numbers are included in the output.
 
 ## Detected Issues
 

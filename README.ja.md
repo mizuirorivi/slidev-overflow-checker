@@ -1,17 +1,75 @@
 # Slidev Overflow Checker
 
-Slidevプレゼンテーションのコンテンツ見切れを自動検出するツール
+**AIが生成・編集したSlidevスライドのレイアウト破綻を実レンダリングで検出する評価ツール**
+
+Slidev Overflow Checkerは、人間だけでなく**AIエージェント（例：Claude Code）が使用する**ことを想定して設計されています。
 
 **[English](./README.md)** | **[中文](./README.zh.md)**
 
-## 特徴
+## なぜこのツールが存在するのか
 
-- **3種類の見切れ検出**: テキストオーバーフロー、要素のはみ出し、スクロールバーの出現を自動検出
-- **複数の出力形式**: コンソール、HTML、JSONで結果を出力
-- **柔軟な起動方法**: 既存URLの指定またはSlidevの自動起動に対応
-- **視覚的なレポート**: スクリーンショット付きのHTMLレポート生成
-- **カスタマイズ可能**: 設定ファイルで検出ルールや除外条件を指定
-- **CI/CD対応**: 問題検出時に終了コード1で終了
+LLMはテキストや構造の生成は得意ですが、**視覚的なレイアウトの正しさを検証するのは苦手**です。
+
+AIがSlidevプレゼンテーションを生成すると、しばしば以下のような問題が発生します：
+- コンテナからはみ出すテキスト
+- スライド境界を超える要素
+- 意図しないスクロールバーの出現
+
+これらの問題は**Markdownだけでは確実に検出できません**。
+
+Slidev Overflow Checkerは以下の方法でこの問題を解決します：
+- 実際のブラウザ（Playwright）でスライドをレンダリング
+- レイアウト破綻をピクセル単位で計測
+- AIが対応できる機械可読なシグナルを返却
+
+## 想定される使い方（AI-first）
+
+このツールは主に**AIエージェントの外部コマンド/スキル**として使用されることを想定しています。
+
+典型的なワークフロー：
+
+1. AIがSlidev Markdownを生成または編集
+2. AIが`slidev-overflow-checker`を実行
+3. チェッカーが構造化されたJSONを返却
+4. AIがレイアウトの問題を分析
+5. AIがテキストを修正、スライドを分割、コンテンツを調整
+6. レイアウトの問題がなくなるまで繰り返し
+
+人間は最終出力を確認するだけです。
+
+## 出力：機械可読なレイアウトシグナル
+
+JSON出力がこのツールの**主要なインターフェース**です。
+
+```bash
+npx slidev-overflow-checker --url http://localhost:3030 --format json --project ./slides --verbose
+```
+
+提供される情報：
+- スライド番号
+- 問題の種類（`text-overflow` / `element-overflow` / `scrollbar`）
+- オーバーフロー量（px）
+- 影響を受けるDOMセレクタ
+- 対応するMarkdownソースの行（`--project`指定時）
+
+これにより、AIエージェントは以下を判断できます：
+- 何を要約すべきか
+- いつスライドを分割すべきか
+- どの要素をリサイズまたは書き換えるべきか
+
+## このツールが可能にすること
+
+- 視覚的なレイアウト破綻を構造化されたシグナルに変換
+- スライドのレイアウト正確性をAIがテスト可能に
+- LLMとレンダリング出力のギャップを埋める
+- 「生成 → 評価 → 再生成」の反復ループを実現
+
+## 手動 / CI での使用（オプション）
+
+AI-firstの設計ですが、以下の用途で人間が直接使用することも可能です：
+- プレゼンテーション前のチェック
+- CIの品質ゲート
+- レイアウト問題のデバッグ
 
 ## インストール
 
@@ -19,22 +77,22 @@ Slidevプレゼンテーションのコンテンツ見切れを自動検出す�
 npm install -g slidev-overflow-checker
 ```
 
-または、プロジェクトローカルにインストール:
+または、プロジェクトローカルにインストール：
 
 ```bash
 npm install --save-dev slidev-overflow-checker
 ```
 
-## 使い方
+## CLIの使い方
 
 ### 基本的な使い方
 
-既存のSlidevをチェック:
+既存のSlidevサーバーをチェック：
 ```bash
 npx slidev-overflow-checker --url http://localhost:3030
 ```
 
-Slidevを自動起動してチェック:
+Slidevを自動起動してチェック：
 ```bash
 npx slidev-overflow-checker --slides ./slides.md
 ```
@@ -73,7 +131,7 @@ npx slidev-overflow-checker --url http://localhost:3030 \
 
 ### 詳細モード（--verbose）
 
-詳細モードでは、見切れている要素の詳細情報が表示されます:
+詳細モードでは、見切れている要素の詳細情報が表示されます：
 
 - **要素の識別情報**: タグ名、CSSクラス、セレクタ
 - **オーバーフロー量**: 具体的なピクセル数
@@ -93,13 +151,13 @@ Checking slide 5/20...
 
 ### プロジェクトパス指定（--project）
 
-`--project`オプションでSlidevプロジェクトのディレクトリを指定すると、**Markdownソースの該当行番号**も表示されます:
+`--project`オプションでSlidevプロジェクトのディレクトリを指定すると、**Markdownソースの該当行番号**も表示されます：
 
 ```bash
 npx slidev-overflow-checker --url http://localhost:3030 --project ./my-presentation --verbose
 ```
 
-出力例:
+出力例：
 ```bash
 Checking slide 5/20...
   ⚠ Text overflow detected:
@@ -122,7 +180,27 @@ Summary:
       - slides.md:49 (img: element overflow)
 ```
 
-これにより、**どのファイルの何行目を修正すれば良いか**が一目瞭然になります。
+## CLIオプション一覧
+
+| オプション | 短縮形 | 説明 | デフォルト |
+|----------|-------|------|----------|
+| `--url <url>` | `-u` | チェックするSlidevのURL | - |
+| `--slides <path>` | `-s` | Slidevのマークダウンファイルパス | - |
+| `--project <path>` | | Slidevプロジェクトのディレクトリパス | - |
+| `--pages <range>` | `-p` | チェックするページ範囲 (例: 1-10) | 全ページ |
+| `--format <formats>` | `-f` | 出力形式（console,html,json） | console |
+| `--output <dir>` | `-o` | 出力ディレクトリ | ./reports |
+| `--threshold <n>` | `-t` | オーバーフロー検出の閾値(px) | 1 |
+| `--wait <ms>` | `-w` | ページ遷移後の待機時間(ms) | 0 |
+| `--viewport <size>` | | ビューポートサイズ | 1920x1080 |
+| `--browser <name>` | `-b` | ブラウザ (chromium/firefox/webkit) | chromium |
+| `--headless` | | ヘッドレスモード | true |
+| `--verbose` | `-v` | 詳細ログを出力 | false |
+| `--fail-on-issues` | | 問題検出時に終了コード1で終了 | false |
+| `--concurrency <n>` | | 並列チェック数 | 4 |
+| `--config <path>` | `-c` | 設定ファイルのパス | - |
+
+## 設定
 
 ### 設定ファイル例
 
@@ -170,86 +248,6 @@ export default {
   }
 }
 ```
-
-## 出力例
-
-### コンソール出力（通常モード）
-```
-Checking slide 1/20...
-  ✓ No issues found
-
-Checking slide 5/20...
-  ⚠ Text overflow detected
-  ⚠ Element overflow detected
-
-Checking slide 12/20...
-  ⚠ Scrollbar detected
-
-Summary:
-  Total slides: 20
-  Issues found: 3 slides (Slide 5, 12, 18)
-  - Text overflow: 2 slides (Slide 5, 18)
-  - Element overflow: 1 slide (Slide 5)
-  - Scrollbar detected: 1 slide (Slide 12)
-```
-
-### コンソール出力（詳細モード --verbose）
-```
-Checking slide 5/20...
-  ⚠ Text overflow detected:
-    - Element: h1.slide-title
-      Selector: .slidev-page:nth-child(5) > h1.slide-title
-      Container width: 980px
-      Content width: 1250px
-      Overflow: 270px
-      Text: "Introduction to Advanced TypeScript Patterns and Best..."
-
-  ⚠ Element overflow detected:
-    - Element: img.hero-image
-      Selector: .slidev-page:nth-child(5) > .content > img.hero-image
-      Slide bounds: 0, 0, 980, 552
-      Element bounds: 50, 100, 1050, 450
-      Overflow: right 70px
-
-Summary:
-  Total slides: 20
-  Issues found: 3 slides (Slide 5, 12, 18)
-  - Text overflow: 2 slides (Slide 5, 18)
-  - Element overflow: 1 slide (Slide 5)
-  - Scrollbar detected: 1 slide (Slide 12)
-
-Detailed issues by slide:
-  Slide 5: 2 issues (text overflow, element overflow)
-  Slide 12: 1 issue (scrollbar)
-  Slide 18: 1 issue (text overflow)
-```
-
-### HTMLレポート
-
-`./reports/overflow-report-[timestamp].html` に視覚的なレポートが生成されます。
-各問題のあるスライドのスクリーンショットと詳細情報が含まれます。
-
-## CLI オプション一覧
-
-| オプション | 短縮形 | 説明 | デフォルト |
-|----------|-------|------|----------|
-| `--url <url>` | `-u` | チェックするSlidevのURL | - |
-| `--slides <path>` | `-s` | Slidevのマークダウンファイルパス | - |
-| `--project <path>` | | Slidevプロジェクトのディレクトリパス | - |
-| `--pages <range>` | `-p` | チェックするページ範囲 (例: 1-10) | 全ページ |
-| `--format <formats>` | `-f` | 出力形式（console,html,json） | console |
-| `--output <dir>` | `-o` | 出力ディレクトリ | ./reports |
-| `--threshold <n>` | `-t` | オーバーフロー検出の閾値(px) | 1 |
-| `--wait <ms>` | `-w` | ページ遷移後の待機時間(ms) | 0 |
-| `--viewport <size>` | | ビューポートサイズ | 1920x1080 |
-| `--browser <name>` | `-b` | ブラウザ (chromium/firefox/webkit) | chromium |
-| `--headless` | | ヘッドレスモード | true |
-| `--verbose` | `-v` | 詳細ログを出力 | false |
-| `--fail-on-issues` | | 問題検出時に終了コード1で終了 | false |
-| `--concurrency <n>` | | 並列チェック数 | 4 |
-| `--config <path>` | `-c` | 設定ファイルのパス | - |
-
-**注**: `--project`を指定すると、Markdownソースの該当行番号が出力に含まれます。
 
 ## 検出される問題
 

@@ -1,17 +1,75 @@
 # Slidev Overflow Checker
 
-Slidev演示文稿内容溢出自动检测工具
+**通过真实浏览器渲染检测AI生成的Slidev幻灯片布局问题的评估工具**
+
+Slidev Overflow Checker 设计为供**AI代理（如 Claude Code）使用**，而不仅仅是人类。
 
 **[English](./README.md)** | **[日本語](./README.ja.md)**
 
-## 功能特点
+## 为什么需要这个工具
 
-- **3种溢出检测**: 自动检测文本溢出、元素溢出和滚动条出现
-- **多种输出格式**: 支持控制台、HTML和JSON格式输出
-- **灵活的启动方式**: 支持指定现有URL或自动启动Slidev
-- **可视化报告**: 生成带截图的HTML报告
-- **可定制**: 通过配置文件指定检测规则和排除条件
-- **CI/CD就绪**: 发现问题时以退出码1退出
+LLM擅长生成文本和结构，但**不擅长验证视觉布局的正确性**。
+
+当AI生成Slidev演示文稿时，经常会产生以下问题：
+- 文本溢出容器
+- 元素超出幻灯片边界
+- 意外出现滚动条
+
+这些问题**仅靠Markdown无法可靠检测**。
+
+Slidev Overflow Checker 通过以下方式解决这个问题：
+- 在真实浏览器（Playwright）中渲染幻灯片
+- 以像素为单位测量布局问题
+- 返回AI可处理的机器可读信号
+
+## 预期用法（AI优先）
+
+此工具主要设计为**AI代理的外部命令/技能**。
+
+典型工作流程：
+
+1. AI生成或编辑Slidev Markdown
+2. AI运行 `slidev-overflow-checker`
+3. 检查器返回结构化JSON
+4. AI分析布局问题
+5. AI修改文本、拆分幻灯片或调整内容
+6. 重复直到没有布局问题
+
+人类只需审核最终输出。
+
+## 输出：机器可读的布局信号
+
+JSON输出是此工具的**主要接口**。
+
+```bash
+npx slidev-overflow-checker --url http://localhost:3030 --format json --project ./slides --verbose
+```
+
+提供的信息：
+- 幻灯片编号
+- 问题类型（`text-overflow` / `element-overflow` / `scrollbar`）
+- 溢出量（px）
+- 受影响的DOM选择器
+- 对应的Markdown源代码行（使用 `--project` 时）
+
+这使AI代理能够：
+- 决定需要精简什么内容
+- 决定何时拆分幻灯片
+- 决定需要调整或重写哪些元素
+
+## 这个工具能实现什么
+
+- 将视觉布局问题转换为结构化信号
+- 使幻灯片布局正确性可被AI测试
+- 弥合LLM与渲染输出之间的差距
+- 实现"生成 → 评估 → 重新生成"的迭代循环
+
+## 手动/CI使用（可选）
+
+虽然设计为AI优先，但该工具也可以直接供人类使用：
+- 演示前检查
+- CI质量门禁
+- 调试布局问题
 
 ## 安装
 
@@ -19,22 +77,22 @@ Slidev演示文稿内容溢出自动检测工具
 npm install -g slidev-overflow-checker
 ```
 
-或者在项目中本地安装:
+或者在项目中本地安装：
 
 ```bash
 npm install --save-dev slidev-overflow-checker
 ```
 
-## 使用方法
+## CLI使用方法
 
 ### 基本用法
 
-检查已运行的Slidev:
+检查已运行的Slidev服务器：
 ```bash
 npx slidev-overflow-checker --url http://localhost:3030
 ```
 
-自动启动Slidev并检查:
+自动启动Slidev并检查：
 ```bash
 npx slidev-overflow-checker --slides ./slides.md
 ```
@@ -73,7 +131,7 @@ npx slidev-overflow-checker --url http://localhost:3030 \
 
 ### 详细模式（--verbose）
 
-在详细模式下，会显示溢出元素的详细信息:
+在详细模式下，会显示溢出元素的详细信息：
 
 - **元素标识**: 标签名、CSS类、选择器
 - **溢出量**: 具体像素值
@@ -93,13 +151,13 @@ Checking slide 5/20...
 
 ### 项目路径选项（--project）
 
-通过`--project`选项指定Slidev项目目录后，还会显示**对应的Markdown源代码行号**:
+通过 `--project` 选项指定Slidev项目目录后，还会显示**对应的Markdown源代码行号**：
 
 ```bash
 npx slidev-overflow-checker --url http://localhost:3030 --project ./my-presentation --verbose
 ```
 
-输出示例:
+输出示例：
 ```bash
 Checking slide 5/20...
   ⚠ Text overflow detected:
@@ -122,7 +180,27 @@ Summary:
       - slides.md:49 (img: element overflow)
 ```
 
-这样可以清楚地知道**需要修复哪个文件的哪一行**。
+## CLI选项列表
+
+| 选项 | 简写 | 说明 | 默认值 |
+|------|------|------|--------|
+| `--url <url>` | `-u` | 要检查的Slidev URL | - |
+| `--slides <path>` | `-s` | Slidev Markdown文件路径 | - |
+| `--project <path>` | | Slidev项目目录路径 | - |
+| `--pages <range>` | `-p` | 要检查的页面范围（如: 1-10） | 所有页面 |
+| `--format <formats>` | `-f` | 输出格式（console,html,json） | console |
+| `--output <dir>` | `-o` | 输出目录 | ./reports |
+| `--threshold <n>` | `-t` | 溢出检测阈值（px） | 1 |
+| `--wait <ms>` | `-w` | 页面切换后等待时间（ms） | 0 |
+| `--viewport <size>` | | 视口尺寸 | 1920x1080 |
+| `--browser <name>` | `-b` | 浏览器（chromium/firefox/webkit） | chromium |
+| `--headless` | | 无头模式 | true |
+| `--verbose` | `-v` | 输出详细日志 | false |
+| `--fail-on-issues` | | 发现问题时以退出码1退出 | false |
+| `--concurrency <n>` | | 并行检查数 | 4 |
+| `--config <path>` | `-c` | 配置文件路径 | - |
+
+## 配置
 
 ### 配置文件示例
 
@@ -170,86 +248,6 @@ export default {
   }
 }
 ```
-
-## 输出示例
-
-### 控制台输出（普通模式）
-```
-Checking slide 1/20...
-  ✓ No issues found
-
-Checking slide 5/20...
-  ⚠ Text overflow detected
-  ⚠ Element overflow detected
-
-Checking slide 12/20...
-  ⚠ Scrollbar detected
-
-Summary:
-  Total slides: 20
-  Issues found: 3 slides (Slide 5, 12, 18)
-  - Text overflow: 2 slides (Slide 5, 18)
-  - Element overflow: 1 slide (Slide 5)
-  - Scrollbar detected: 1 slide (Slide 12)
-```
-
-### 控制台输出（详细模式 --verbose）
-```
-Checking slide 5/20...
-  ⚠ Text overflow detected:
-    - Element: h1.slide-title
-      Selector: .slidev-page:nth-child(5) > h1.slide-title
-      Container width: 980px
-      Content width: 1250px
-      Overflow: 270px
-      Text: "Introduction to Advanced TypeScript Patterns and Best..."
-
-  ⚠ Element overflow detected:
-    - Element: img.hero-image
-      Selector: .slidev-page:nth-child(5) > .content > img.hero-image
-      Slide bounds: 0, 0, 980, 552
-      Element bounds: 50, 100, 1050, 450
-      Overflow: right 70px
-
-Summary:
-  Total slides: 20
-  Issues found: 3 slides (Slide 5, 12, 18)
-  - Text overflow: 2 slides (Slide 5, 18)
-  - Element overflow: 1 slide (Slide 5)
-  - Scrollbar detected: 1 slide (Slide 12)
-
-Detailed issues by slide:
-  Slide 5: 2 issues (text overflow, element overflow)
-  Slide 12: 1 issue (scrollbar)
-  Slide 18: 1 issue (text overflow)
-```
-
-### HTML报告
-
-在 `./reports/overflow-report-[timestamp].html` 生成可视化报告。
-包含每个有问题幻灯片的截图和详细信息。
-
-## CLI选项列表
-
-| 选项 | 简写 | 说明 | 默认值 |
-|------|------|------|--------|
-| `--url <url>` | `-u` | 要检查的Slidev URL | - |
-| `--slides <path>` | `-s` | Slidev Markdown文件路径 | - |
-| `--project <path>` | | Slidev项目目录路径 | - |
-| `--pages <range>` | `-p` | 要检查的页面范围（如: 1-10） | 所有页面 |
-| `--format <formats>` | `-f` | 输出格式（console,html,json） | console |
-| `--output <dir>` | `-o` | 输出目录 | ./reports |
-| `--threshold <n>` | `-t` | 溢出检测阈值（px） | 1 |
-| `--wait <ms>` | `-w` | 页面切换后等待时间（ms） | 0 |
-| `--viewport <size>` | | 视口尺寸 | 1920x1080 |
-| `--browser <name>` | `-b` | 浏览器（chromium/firefox/webkit） | chromium |
-| `--headless` | | 无头模式 | true |
-| `--verbose` | `-v` | 输出详细日志 | false |
-| `--fail-on-issues` | | 发现问题时以退出码1退出 | false |
-| `--concurrency <n>` | | 并行检查数 | 4 |
-| `--config <path>` | `-c` | 配置文件路径 | - |
-
-**注意**: 指定`--project`后，输出中会包含对应的Markdown源代码行号。
 
 ## 检测的问题类型
 
