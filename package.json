@@ -59,10 +59,10 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/your-username/slidev-overflow-checker.git"
+    "url": "git+https://github.com/mizuirorivi/slidev-overflow-checker.git"
   },
   "bugs": {
-    "url": "https://github.com/your-username/slidev-overflow-checker/issues"
+    "url": "https://github.com/mizuirorivi/slidev-overflow-checker/issues"
   },
-  "homepage": "https://github.com/your-username/slidev-overflow-checker#readme"
+  "homepage": "https://github.com/mizuirorivi/slidev-overflow-checker#readme"
 }

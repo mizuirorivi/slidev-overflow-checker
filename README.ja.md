@@ -134,24 +134,27 @@ npx slidev-overflow-checker --url http://localhost:3030 \
 詳細モードでは、見切れている要素の詳細情報が表示されます：
 
 - **要素の識別情報**: タグ名、CSSクラス、セレクタ
-- **オーバーフロー量**: 具体的なピクセル数
-- **要素の位置**: 座標とサイズ
-- **テキスト内容**: 見切れているテキストの一部（テキストオーバーフローの場合）
+- **オーバーフロー量**: 具体的なピクセル数（テキストは水平方向、要素は方向別）
+- **見切れているコンテンツ**: 実際にオーバーフローしているテキストや要素の内容
+- **ソース位置**: Markdownの具体的な行番号（`--project`指定時）
 
 ```bash
-Checking slide 5/20...
+Checking slide 2/40...
   ⚠ Text overflow detected:
-    - Element: h1.slide-title
-      Selector: .slidev-page:nth-child(5) > h1.slide-title
-      Container width: 980px
-      Content width: 1250px
-      Overflow: 270px
-      Text: "Introduction to Advanced TypeScript Patterns..."
+    - Element: p
+      Selector: p
+      Container width: 1917.39px
+      Content width: 1947.66px
+      Overflow: 171.48px
+      Overflowing text: "開幕から重要局面までの手順 aaaaaaaaaaaaaaaaaaaaa..."
+
+      Source: slides.md:35
+      35 | 開幕から重要局面までの手順
 ```
 
 ### プロジェクトパス指定（--project）
 
-`--project`オプションでSlidevプロジェクトのディレクトリを指定すると、**Markdownソースの該当行番号**も表示されます：
+`--project`オプションでSlidevプロジェクトのディレクトリを指定すると、**Markdownソースの該当行番号**が正確なコンテンツマッチングで表示されます：
 
 ```bash
 npx slidev-overflow-checker --url http://localhost:3030 --project ./my-presentation --verbose
@@ -159,25 +162,41 @@ npx slidev-overflow-checker --url http://localhost:3030 --project ./my-presentat
 
 出力例：
 ```bash
-Checking slide 5/20...
-  ⚠ Text overflow detected:
-    - Element: h1.slide-title
-      Selector: .slidev-page:nth-child(5) > h1.slide-title
-      Container width: 980px
-      Content width: 1250px
-      Overflow: 270px
-      Text: "Introduction to Advanced TypeScript Patterns..."
+Checking slide 19/40...
+  ⚠ Element overflow detected:
+    - Element: li
+      Selector: li
+      Slide bounds: 1.30, 0, 1918.70, 1080
+      Element bounds: 168.53, 1076.94, 1828.91, 1138.94
+      Overflow: bottom 58.94px
+      Content: "中央に露出 → 白の攻撃の的"
 
-      Source: slides.md:46-47
-      ---
-      46 | # Introduction to Advanced TypeScript Patterns and Best Practices
-      47 | ---
+      Source: slides.md:520
+      520 | 3. 中央に露出 → 白の攻撃の的
+
+  ⚠ Element overflow detected:
+    - Element: p
+      Selector: p
+      Slide bounds: 1.30, 0, 1918.70, 1080
+      Element bounds: 130.26, 1170.24, 1828.52, 1217.20
+      Overflow: bottom 137.20px
+      Content: "白の勝ち方: 短期的な詰みではなく、長期的な圧迫 (d3, Bf4, 0-0-0, h4-h5…)"
+
+      Source: slides.md:522
+      522 | **白の勝ち方**: 短期的な詰みではなく、長期的な圧迫 (d3, Bf4, 0-0-0, h4-h5...)
 
 Summary:
-  Detailed issues by slide:
-    Slide 5: 2 issues
-      - slides.md:46 (h1: text overflow)
-      - slides.md:49 (img: element overflow)
+  Total slides: 40
+  Issues found: 5 slides (Slide 2, 19, 34, 35, 37)
+  - Text overflow: 1 slides (Slide 2)
+  - Element overflow: 4 slides (Slide 19, 34, 35, 37)
+
+Detailed issues by slide:
+  Slide 19: 4 issues
+    - slides.md:499 (ol: element overflow)
+    - slides.md:520 (li: element overflow)
+    - slides.md:522 (p: element overflow)
+    - slides.md:522 (strong: element overflow)
 ```
 
 ## CLIオプション一覧
@@ -251,13 +270,17 @@ export default {
 
 ## 検出される問題
 
-### 1. テキストのオーバーフロー
-- テキストがコンテナからはみ出している
+### 1. テキストのオーバーフロー（水平方向）
+- テキストが水平方向にコンテナからはみ出している
+- スライド幅を超える長い行
 - `overflow: hidden` や `text-overflow: ellipsis` で隠されているコンテンツ
+- 実際にオーバーフローしているテキスト内容を表示
 
-### 2. 要素の切れ・はみ出し
-- 画像やDIV要素がスライド境界を超えている
-- 視覚的に見切れているコンテンツ
+### 2. 要素のオーバーフロー（位置ベース）
+- 要素がスライド境界を超えている（上下左右）
+- 画像、リスト、段落が表示可能領域外に配置されている
+- スライド端で切れているコンテンツ
+- オーバーフローの方向とピクセル量を表示
 
 ### 3. スクロールバーの出現
 - 意図しない縦・横スクロールバーの出現
@@ -273,7 +296,7 @@ export default {
 ### セットアップ
 
 ```bash
-git clone https://github.com/your-username/slidev-overflow-checker.git
+git clone https://github.com/mizuirorivi/slidev-overflow-checker.git
 cd slidev-overflow-checker
 npm install
 ```

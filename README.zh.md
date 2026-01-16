@@ -134,24 +134,27 @@ npx slidev-overflow-checker --url http://localhost:3030 \
 在详细模式下，会显示溢出元素的详细信息：
 
 - **元素标识**: 标签名、CSS类、选择器
-- **溢出量**: 具体像素值
-- **元素位置**: 坐标和尺寸
-- **文本内容**: 溢出文本的部分内容（文本溢出时）
+- **溢出量**: 具体像素值（文本为水平方向，元素为各方向）
+- **溢出内容**: 实际溢出的文本或元素内容
+- **源位置**: Markdown中的具体行号（使用 `--project` 时）
 
 ```bash
-Checking slide 5/20...
+Checking slide 2/40...
   ⚠ Text overflow detected:
-    - Element: h1.slide-title
-      Selector: .slidev-page:nth-child(5) > h1.slide-title
-      Container width: 980px
-      Content width: 1250px
-      Overflow: 270px
-      Text: "Introduction to Advanced TypeScript Patterns..."
+    - Element: p
+      Selector: p
+      Container width: 1917.39px
+      Content width: 1947.66px
+      Overflow: 171.48px
+      Overflowing text: "Opening sequence to critical position aaaaaaaaaaaaaaaaaaaaa..."
+
+      Source: slides.md:35
+      35 | Opening sequence to critical position
 ```
 
 ### 项目路径选项（--project）
 
-通过 `--project` 选项指定Slidev项目目录后，还会显示**对应的Markdown源代码行号**：
+通过 `--project` 选项指定Slidev项目目录后，还会通过精确的内容匹配显示**对应的Markdown源代码行号**：
 
 ```bash
 npx slidev-overflow-checker --url http://localhost:3030 --project ./my-presentation --verbose
@@ -159,25 +162,41 @@ npx slidev-overflow-checker --url http://localhost:3030 --project ./my-presentat
 
 输出示例：
 ```bash
-Checking slide 5/20...
-  ⚠ Text overflow detected:
-    - Element: h1.slide-title
-      Selector: .slidev-page:nth-child(5) > h1.slide-title
-      Container width: 980px
-      Content width: 1250px
-      Overflow: 270px
-      Text: "Introduction to Advanced TypeScript Patterns..."
+Checking slide 19/40...
+  ⚠ Element overflow detected:
+    - Element: li
+      Selector: li
+      Slide bounds: 1.30, 0, 1918.70, 1080
+      Element bounds: 168.53, 1076.94, 1828.91, 1138.94
+      Overflow: bottom 58.94px
+      Content: "Black's King is exposed in center"
 
-      Source: slides.md:46-47
-      ---
-      46 | # Introduction to Advanced TypeScript Patterns and Best Practices
-      47 | ---
+      Source: slides.md:520
+      520 | 3. Black's King is exposed in center
+
+  ⚠ Element overflow detected:
+    - Element: p
+      Selector: p
+      Slide bounds: 1.30, 0, 1918.70, 1080
+      Element bounds: 130.26, 1170.24, 1828.52, 1217.20
+      Overflow: bottom 137.20px
+      Content: "White's winning plan: long-term pressure (d3, Bf4, 0-0-0, h4-h5...)"
+
+      Source: slides.md:522
+      522 | **White's winning plan**: long-term pressure (d3, Bf4, 0-0-0, h4-h5...)
 
 Summary:
-  Detailed issues by slide:
-    Slide 5: 2 issues
-      - slides.md:46 (h1: text overflow)
-      - slides.md:49 (img: element overflow)
+  Total slides: 40
+  Issues found: 5 slides (Slide 2, 19, 34, 35, 37)
+  - Text overflow: 1 slides (Slide 2)
+  - Element overflow: 4 slides (Slide 19, 34, 35, 37)
+
+Detailed issues by slide:
+  Slide 19: 4 issues
+    - slides.md:499 (ol: element overflow)
+    - slides.md:520 (li: element overflow)
+    - slides.md:522 (p: element overflow)
+    - slides.md:522 (strong: element overflow)
 ```
 
 ## CLI选项列表
@@ -251,13 +270,17 @@ export default {
 
 ## 检测的问题类型
 
-### 1. 文本溢出
-- 文本超出容器边界
+### 1. 文本溢出（水平方向）
+- 文本在水平方向超出容器边界
+- 超出幻灯片宽度的长行
 - 被 `overflow: hidden` 或 `text-overflow: ellipsis` 隐藏的内容
+- 显示实际溢出的文本内容
 
-### 2. 元素溢出
-- 图片或DIV元素超出幻灯片边界
-- 视觉上被裁切的内容
+### 2. 元素溢出（位置）
+- 元素超出幻灯片边界（上下左右）
+- 图片、列表、段落位于可视区域外
+- 在幻灯片边缘被裁切的内容
+- 显示溢出方向和像素量
 
 ### 3. 滚动条出现
 - 意外出现的垂直/水平滚动条
@@ -273,7 +296,7 @@ export default {
 ### 设置
 
 ```bash
-git clone https://github.com/your-username/slidev-overflow-checker.git
+git clone https://github.com/mizuirorivi/slidev-overflow-checker.git
 cd slidev-overflow-checker
 npm install
 ```

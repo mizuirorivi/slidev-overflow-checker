@@ -134,24 +134,27 @@ npx slidev-overflow-checker --url http://localhost:3030 \
 In verbose mode, detailed information about overflow elements is displayed:
 
 - **Element identification**: Tag name, CSS class, selector
-- **Overflow amount**: Specific pixel values
-- **Element position**: Coordinates and size
-- **Text content**: Portion of overflowing text (for text overflow)
+- **Overflow amount**: Specific pixel values (horizontal for text, directional for elements)
+- **Overflowing content**: The actual text or element content that is overflowing
+- **Source location**: Specific line numbers in Markdown (with `--project`)
 
 ```bash
-Checking slide 5/20...
+Checking slide 2/40...
   ⚠ Text overflow detected:
-    - Element: h1.slide-title
-      Selector: .slidev-page:nth-child(5) > h1.slide-title
-      Container width: 980px
-      Content width: 1250px
-      Overflow: 270px
-      Text: "Introduction to Advanced TypeScript Patterns..."
+    - Element: p
+      Selector: p
+      Container width: 1917.39px
+      Content width: 1947.66px
+      Overflow: 171.48px
+      Overflowing text: "Opening sequence to critical position aaaaaaaaaaaaaaaaaaaaa..."
+
+      Source: slides.md:35
+      35 | Opening sequence to critical position
 ```
 
 ### Project Path Option (--project)
 
-By specifying the Slidev project directory with `--project`, **corresponding Markdown source line numbers** are also displayed:
+By specifying the Slidev project directory with `--project`, **corresponding Markdown source line numbers** are also displayed with precise content matching:
 
 ```bash
 npx slidev-overflow-checker --url http://localhost:3030 --project ./my-presentation --verbose
@@ -159,25 +162,41 @@ npx slidev-overflow-checker --url http://localhost:3030 --project ./my-presentat
 
 Example output:
 ```bash
-Checking slide 5/20...
-  ⚠ Text overflow detected:
-    - Element: h1.slide-title
-      Selector: .slidev-page:nth-child(5) > h1.slide-title
-      Container width: 980px
-      Content width: 1250px
-      Overflow: 270px
-      Text: "Introduction to Advanced TypeScript Patterns..."
+Checking slide 19/40...
+  ⚠ Element overflow detected:
+    - Element: li
+      Selector: li
+      Slide bounds: 1.30, 0, 1918.70, 1080
+      Element bounds: 168.53, 1076.94, 1828.91, 1138.94
+      Overflow: bottom 58.94px
+      Content: "Black's King is exposed in center"
 
-      Source: slides.md:46-47
-      ---
-      46 | # Introduction to Advanced TypeScript Patterns and Best Practices
-      47 | ---
+      Source: slides.md:520
+      520 | 3. Black's King is exposed in center
+
+  ⚠ Element overflow detected:
+    - Element: p
+      Selector: p
+      Slide bounds: 1.30, 0, 1918.70, 1080
+      Element bounds: 130.26, 1170.24, 1828.52, 1217.20
+      Overflow: bottom 137.20px
+      Content: "White's winning plan: long-term pressure (d3, Bf4, 0-0-0, h4-h5...)"
+
+      Source: slides.md:522
+      522 | **White's winning plan**: long-term pressure (d3, Bf4, 0-0-0, h4-h5...)
 
 Summary:
-  Detailed issues by slide:
-    Slide 5: 2 issues
-      - slides.md:46 (h1: text overflow)
-      - slides.md:49 (img: element overflow)
+  Total slides: 40
+  Issues found: 5 slides (Slide 2, 19, 34, 35, 37)
+  - Text overflow: 1 slides (Slide 2)
+  - Element overflow: 4 slides (Slide 19, 34, 35, 37)
+
+Detailed issues by slide:
+  Slide 19: 4 issues
+    - slides.md:499 (ol: element overflow)
+    - slides.md:520 (li: element overflow)
+    - slides.md:522 (p: element overflow)
+    - slides.md:522 (strong: element overflow)
 ```
 
 ## CLI Options
@@ -251,13 +270,17 @@ export default {
 
 ## Detected Issues
 
-### 1. Text Overflow
-- Text extending beyond its container
+### 1. Text Overflow (Horizontal)
+- Text extending beyond its container horizontally
+- Long lines that exceed the slide width
 - Content hidden by `overflow: hidden` or `text-overflow: ellipsis`
+- Displays the actual overflowing text content
 
-### 2. Element Overflow
-- Images or DIV elements exceeding slide boundaries
-- Visually cut-off content
+### 2. Element Overflow (Positional)
+- Elements exceeding slide boundaries (top, bottom, left, right)
+- Images, lists, paragraphs positioned outside visible area
+- Content cut off at slide edges
+- Shows overflow direction and amount in pixels
 
 ### 3. Scrollbar Appearance
 - Unintended vertical/horizontal scrollbar appearance
@@ -273,7 +296,7 @@ export default {
 ### Setup
 
 ```bash
-git clone https://github.com/your-username/slidev-overflow-checker.git
+git clone https://github.com/mizuirorivi/slidev-overflow-checker.git
 cd slidev-overflow-checker
 npm install
 ```
