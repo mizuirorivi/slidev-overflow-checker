@@ -57,7 +57,6 @@ export class ConfigLoader {
     const normalized: Partial<CheckerOptions> = {};
 
     if (config.url) normalized.url = config.url;
-    if (config.slides) normalized.slides = config.slides;
     if (config.project) normalized.project = config.project;
     if (config.pages) normalized.pages = config.pages;
     if (config.format) normalized.format = config.format;

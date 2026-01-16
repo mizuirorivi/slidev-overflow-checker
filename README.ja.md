@@ -87,14 +87,15 @@ npm install --save-dev slidev-overflow-checker
 
 ### 基本的な使い方
 
-既存のSlidevサーバーをチェック：
+まず、Slidevプレゼンテーションを起動します：
 ```bash
-npx slidev-overflow-checker --url http://localhost:3030
+cd your-slidev-project
+npx slidev dev
 ```
 
-Slidevを自動起動してチェック：
+次に、オーバーフローをチェックします：
 ```bash
-npx slidev-overflow-checker --slides ./slides.md
+npx slidev-overflow-checker --url http://localhost:3030
 ```
 
 ### オプション
@@ -203,9 +204,8 @@ Detailed issues by slide:
 
 | オプション | 短縮形 | 説明 | デフォルト |
 |----------|-------|------|----------|
-| `--url <url>` | `-u` | チェックするSlidevのURL | - |
-| `--slides <path>` | `-s` | Slidevのマークダウンファイルパス | - |
-| `--project <path>` | | Slidevプロジェクトのディレクトリパス | - |
+| `--url <url>` | `-u` | チェックするSlidevのURL（必須） | - |
+| `--project <path>` | | Slidevプロジェクトのディレクトリパス（ソースマッピング用） | - |
 | `--pages <range>` | `-p` | チェックするページ範囲 (例: 1-10) | 全ページ |
 | `--format <formats>` | `-f` | 出力形式（console,html,json） | console |
 | `--output <dir>` | `-o` | 出力ディレクトリ | ./reports |

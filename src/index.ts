@@ -4,7 +4,6 @@ export { OverflowDetector } from './checker/OverflowDetector';
 export { ConsoleReporter } from './reporters/ConsoleReporter';
 export { JsonReporter } from './reporters/JsonReporter';
 export { HtmlReporter } from './reporters/HtmlReporter';
-export { SlidevLauncher } from './launchers/SlidevLauncher';
 export { ScreenshotCapture } from './utils/ScreenshotCapture';
 export { ConfigLoader } from './utils/ConfigLoader';
 export * from './types';

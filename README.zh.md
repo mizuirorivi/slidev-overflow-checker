@@ -87,14 +87,15 @@ npm install --save-dev slidev-overflow-checker
 
 ### 基本用法
 
-检查已运行的Slidev服务器：
+首先，启动您的Slidev演示文稿：
 ```bash
-npx slidev-overflow-checker --url http://localhost:3030
+cd your-slidev-project
+npx slidev dev
 ```
 
-自动启动Slidev并检查：
+然后检查溢出问题：
 ```bash
-npx slidev-overflow-checker --slides ./slides.md
+npx slidev-overflow-checker --url http://localhost:3030
 ```
 
 ### 选项
@@ -203,9 +204,8 @@ Detailed issues by slide:
 
 | 选项 | 简写 | 说明 | 默认值 |
 |------|------|------|--------|
-| `--url <url>` | `-u` | 要检查的Slidev URL | - |
-| `--slides <path>` | `-s` | Slidev Markdown文件路径 | - |
-| `--project <path>` | | Slidev项目目录路径 | - |
+| `--url <url>` | `-u` | 要检查的Slidev URL（必需） | - |
+| `--project <path>` | | Slidev项目目录路径（用于源映射） | - |
 | `--pages <range>` | `-p` | 要检查的页面范围（如: 1-10） | 所有页面 |
 | `--format <formats>` | `-f` | 输出格式（console,html,json） | console |
 | `--output <dir>` | `-o` | 输出目录 | ./reports |

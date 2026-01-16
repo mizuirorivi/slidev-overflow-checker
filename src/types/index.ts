@@ -120,7 +120,6 @@ export interface ScreenshotOptions {
 // Checker options
 export interface CheckerOptions {
   url?: string;
-  slides?: string;
   project?: string;
   pages?: string;
   format?: string[];

@@ -6,7 +6,6 @@ import { ConsoleReporter } from '../reporters/ConsoleReporter';
 import { JsonReporter } from '../reporters/JsonReporter';
 import { HtmlReporter } from '../reporters/HtmlReporter';
 import { SlideMapper } from '../parsers/SlideMapper';
-import { SlidevLauncher } from '../launchers/SlidevLauncher';
 import { ScreenshotCapture } from '../utils/ScreenshotCapture';
 import { join } from 'path';
 
@@ -14,7 +13,6 @@ export class SlidevChecker {
   private options: CheckerOptions;
   private browser?: Browser;
   private page?: Page;
-  private launcher?: SlidevLauncher;
 
   constructor(options: CheckerOptions) {
     this.options = {
@@ -33,18 +31,10 @@ export class SlidevChecker {
    * Execute check
    */
   async check(): Promise<CheckResult> {
-    let url = this.options.url;
-
-    // Auto-launch Slidev if --slides option is specified
-    if (this.options.slides && !url) {
-      console.log('Launching Slidev...');
-      this.launcher = new SlidevLauncher();
-      url = await this.launcher.launch(this.options.slides, { timeout: 30000 });
-      console.log(`Slidev started at ${url}`);
-    }
+    const url = this.options.url;
 
     if (!url) {
-      throw new Error('URL or slides path is required');
+      throw new Error('URL is required. Please start Slidev manually and provide the URL with --url option.');
     }
 
     try {
@@ -442,13 +432,6 @@ export class SlidevChecker {
     if (this.browser) {
       await this.browser.close();
       this.browser = undefined;
-    }
-
-    // Stop Slidev process
-    if (this.launcher) {
-      console.log('Stopping Slidev...');
-      await this.launcher.stop();
-      this.launcher = undefined;
     }
   }
 }

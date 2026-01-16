@@ -87,14 +87,15 @@ npm install --save-dev slidev-overflow-checker
 
 ### Basic Usage
 
-Check an existing Slidev server:
+First, start your Slidev presentation:
 ```bash
-npx slidev-overflow-checker --url http://localhost:3030
+cd your-slidev-project
+npx slidev dev
 ```
 
-Auto-launch Slidev and check:
+Then check for overflow issues:
 ```bash
-npx slidev-overflow-checker --slides ./slides.md
+npx slidev-overflow-checker --url http://localhost:3030
 ```
 
 ### Options
@@ -203,9 +204,8 @@ Detailed issues by slide:
 
 | Option | Short | Description | Default |
 |--------|-------|-------------|---------|
-| `--url <url>` | `-u` | URL of the Slidev presentation | - |
-| `--slides <path>` | `-s` | Path to Slidev markdown file | - |
-| `--project <path>` | | Path to Slidev project directory | - |
+| `--url <url>` | `-u` | URL of the Slidev presentation (required) | - |
+| `--project <path>` | | Path to Slidev project directory (for source mapping) | - |
 | `--pages <range>` | `-p` | Page range to check (e.g., 1-10) | All pages |
 | `--format <formats>` | `-f` | Output formats (console,html,json) | console |
 | `--output <dir>` | `-o` | Output directory | ./reports |

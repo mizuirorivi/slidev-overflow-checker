@@ -13,9 +13,8 @@ program
   .version('0.1.0');
 
 program
-  .option('-u, --url <url>', 'URL of the Slidev presentation')
-  .option('-s, --slides <path>', 'Path to Slidev markdown file')
-  .option('--project <path>', 'Path to Slidev project directory')
+  .option('-u, --url <url>', 'URL of the Slidev presentation (required)')
+  .option('--project <path>', 'Path to Slidev project directory (for source mapping)')
   .option('-p, --pages <range>', 'Page range to check (e.g., 1-10, 5)')
   .option(
     '-f, --format <formats>',
@@ -51,7 +50,7 @@ program
   .option('--screenshot-full-page', 'Capture full page screenshots', false)
   .option('--no-screenshot-highlight', 'Disable highlighting of issues in screenshots')
   .option('--fail-on-issues', 'Exit with code 1 if issues are found (for CI/CD)', false)
-  .option('--concurrency <n>', 'Number of slides to check in parallel', '4')
+  .option('--concurrency <n>', 'Number of slides to check in parallel', '1')
   .option('-c, --config <path>', 'Path to configuration file');
 
 program.action(async (options) => {
@@ -64,8 +63,8 @@ program.action(async (options) => {
     }
 
     // Validate options
-    if (!options.url && !options.slides && !config.url && !config.slides) {
-      console.error('Error: Either --url or --slides option is required');
+    if (!options.url && !config.url) {
+      console.error('Error: --url option is required');
       process.exit(1);
     }
 
@@ -98,7 +97,6 @@ program.action(async (options) => {
     // CLI options (only non-undefined values)
     const cliOptions: Partial<CheckerOptions> = {
       url: options.url,
-      slides: options.slides,
       project: options.project,
       pages: options.pages,
       format: options.format?.split(','),
