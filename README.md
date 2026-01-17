@@ -6,6 +6,11 @@ Designed for **AI agents** to automatically find and fix layout issues that cann
 
 **[日本語](./README.ja.md)** | **[中文](./README.zh.md)**
 
+
+https://github.com/user-attachments/assets/92bd835a-90aa-4e87-b905-f7d0f9d80e3b
+
+
+
 ## Quick Start
 
 ```bash
