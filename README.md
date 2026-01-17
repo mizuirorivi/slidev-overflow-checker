@@ -1,333 +1,169 @@
 # Slidev Overflow Checker
 
-**A visual evaluation tool that detects layout breakage in AI-generated Slidev slides through real browser rendering.**
+**Detect visual overflow in Slidev presentations through real browser rendering.**
 
-Slidev Overflow Checker is designed to be used by **AI agents (e.g., Claude Code)**, not just humans.
+Designed for **AI agents** to automatically find and fix layout issues that cannot be detected from Markdown alone.
 
 **[日本語](./README.ja.md)** | **[中文](./README.zh.md)**
 
-## Why This Tool Exists
-
-LLMs are good at generating text and structure, but **bad at validating visual layout correctness**.
-
-When AI generates Slidev presentations, it often produces:
-- Text that overflows containers
-- Elements that exceed slide boundaries
-- Unintended scrollbars
-
-These issues **cannot be reliably detected from Markdown alone**.
-
-Slidev Overflow Checker solves this by:
-- Rendering slides in a real browser (Playwright)
-- Measuring layout breakage in pixels
-- Returning machine-readable signals for AI to act on
-
-## Intended Usage (AI-first)
-
-This tool is primarily designed to be used as an **external command / skill for AI agents**.
-
-Typical workflow:
-
-1. AI generates or edits Slidev Markdown
-2. AI runs `slidev-overflow-checker`
-3. The checker returns structured JSON
-4. AI analyzes layout issues
-5. AI revises text, splits slides, or adjusts content
-6. Repeat until no layout issues remain
-
-Humans only review the final output.
-
-## Output: Machine-Readable Layout Signals
-
-The JSON output is the **primary interface** of this tool.
+## Quick Start
 
 ```bash
-npx slidev-overflow-checker --url http://localhost:3030 --format json --project ./slides --verbose
-```
-
-It provides:
-- Slide number
-- Issue type (`text-overflow` / `element-overflow` / `scrollbar`)
-- Overflow amount (px)
-- Affected DOM selector
-- Corresponding Markdown source lines (with `--project`)
-
-This allows AI agents to:
-- Decide what to summarize
-- Decide when to split slides
-- Decide which elements to resize or rewrite
-
-## What This Tool Enables
-
-- Converts visual layout breakage into structured signals
-- Makes slide layout correctness testable by AI
-- Bridges the gap between LLMs and rendered output
-- Enables iterative "generate → evaluate → regenerate" loops
-
-## Manual / CI Usage (Optional)
-
-Although AI-first by design, the tool can also be used directly by humans for:
-- Pre-presentation checks
-- CI quality gates
-- Debugging layout issues
-
-## Installation
-
-```bash
+# 1. Install
 npm install -g slidev-overflow-checker
-```
 
-Or install locally in your project:
-
-```bash
-npm install --save-dev slidev-overflow-checker
-```
-
-## CLI Usage
-
-### Basic Usage
-
-First, start your Slidev presentation:
-```bash
+# 2. Start your Slidev presentation
 cd your-slidev-project
 npx slidev dev
+
+# 3. Run checker (in another terminal)
+slidev-overflow-checker --url http://localhost:3030 --project ./ --verbose
 ```
 
-Then check for overflow issues:
-```bash
-npx slidev-overflow-checker --url http://localhost:3030
+## Features
+
+- **Real Browser Rendering** - Uses Playwright to render slides exactly as users see them
+- **Precise Detection** - Measures overflow in pixels, reports exact source lines
+- **AI-Friendly Output** - Structured output that AI agents can parse and act on
+- **Zero Config** - Works out of the box with any Slidev project
+
+## Detection Types
+
+| Type | Description | Example |
+|------|-------------|---------|
+| `text-overflow` | Text extends horizontally beyond container | Long titles, unwrapped text |
+| `element-overflow` | Elements exceed slide boundaries | Too many list items, large images |
+| `scrollbar` | Unintended scrollbars appear | Content overflow causing scroll |
+
+## Output Example
+
 ```
-
-### Options
-
-```bash
-# Generate HTML report and JSON output
-npx slidev-overflow-checker --url http://localhost:3030 --format html,json
-
-# Check specific page range only
-npx slidev-overflow-checker --url http://localhost:3030 --pages 1-10
-
-# Verbose mode: Show detailed information about overflow elements
-npx slidev-overflow-checker --url http://localhost:3030 --verbose
-
-# Specify project path to display corresponding Markdown source lines
-npx slidev-overflow-checker --url http://localhost:3030 --project ./my-presentation --verbose
-
-# Use custom configuration file
-npx slidev-overflow-checker --config ./checker.config.js
-
-# Take screenshots (only for slides with issues)
-npx slidev-overflow-checker --url http://localhost:3030 --screenshot
-
-# CI/CD mode: Exit with code 1 if issues are found
-npx slidev-overflow-checker --url http://localhost:3030 --fail-on-issues
-
-# Customize screenshot options
-npx slidev-overflow-checker --url http://localhost:3030 \
-  --screenshot \
-  --screenshot-dir ./my-screenshots \
-  --screenshot-full-page \
-  --no-screenshot-highlight
-```
-
-### Verbose Mode (--verbose)
-
-In verbose mode, detailed information about overflow elements is displayed:
-
-- **Element identification**: Tag name, CSS class, selector
-- **Overflow amount**: Specific pixel values (horizontal for text, directional for elements)
-- **Overflowing content**: The actual text or element content that is overflowing
-- **Source location**: Specific line numbers in Markdown (with `--project`)
-
-```bash
-Checking slide 2/40...
-  ⚠ Text overflow detected:
-    - Element: p
-      Selector: p
-      Container width: 1917.39px
-      Content width: 1947.66px
-      Overflow: 171.48px
-      Overflowing text: "Opening sequence to critical position aaaaaaaaaaaaaaaaaaaaa..."
-
-      Source: slides.md:35
-      35 | Opening sequence to critical position
-```
-
-### Project Path Option (--project)
-
-By specifying the Slidev project directory with `--project`, **corresponding Markdown source line numbers** are also displayed with precise content matching:
-
-```bash
-npx slidev-overflow-checker --url http://localhost:3030 --project ./my-presentation --verbose
-```
-
-Example output:
-```bash
 Checking slide 19/40...
   ⚠ Element overflow detected:
     - Element: li
-      Selector: li
-      Slide bounds: 1.30, 0, 1918.70, 1080
-      Element bounds: 168.53, 1076.94, 1828.91, 1138.94
       Overflow: bottom 58.94px
       Content: "Black's King is exposed in center"
 
       Source: slides.md:520
       520 | 3. Black's King is exposed in center
 
-  ⚠ Element overflow detected:
-    - Element: p
-      Selector: p
-      Slide bounds: 1.30, 0, 1918.70, 1080
-      Element bounds: 130.26, 1170.24, 1828.52, 1217.20
-      Overflow: bottom 137.20px
-      Content: "White's winning plan: long-term pressure (d3, Bf4, 0-0-0, h4-h5...)"
-
-      Source: slides.md:522
-      522 | **White's winning plan**: long-term pressure (d3, Bf4, 0-0-0, h4-h5...)
-
 Summary:
   Total slides: 40
   Issues found: 5 slides (Slide 2, 19, 34, 35, 37)
-  - Text overflow: 1 slides (Slide 2)
-  - Element overflow: 4 slides (Slide 19, 34, 35, 37)
-
-Detailed issues by slide:
-  Slide 19: 4 issues
-    - slides.md:499 (ol: element overflow)
-    - slides.md:520 (li: element overflow)
-    - slides.md:522 (p: element overflow)
-    - slides.md:522 (strong: element overflow)
 ```
+
+## AI Agent Setup
+
+For AI agents (Claude Code, Cursor, etc.) to automatically detect and fix overflow:
+
+### 1. Install globally
+
+```bash
+npm install -g slidev-overflow-checker
+# or from GitHub
+npm install -g github:mizuirorivi/slidev-overflow-checker
+```
+
+### 2. Add command template to your project
+
+```bash
+mkdir -p .claude/commands
+curl -o .claude/commands/fix-slidev-overflow.md \
+  https://raw.githubusercontent.com/mizuirorivi/slidev-overflow-checker/master/templates/fix-slidev-overflow.md
+```
+
+### 3. Use with AI
+
+Start Slidev, then ask your AI:
+
+```
+/fix-slidev-overflow ./
+```
+
+The AI will:
+1. Run the overflow checker
+2. Identify problematic markdown lines
+3. Fix issues (shorten text, split slides, etc.)
+4. Re-run to verify fixes
 
 ## CLI Options
 
 | Option | Short | Description | Default |
 |--------|-------|-------------|---------|
-| `--url <url>` | `-u` | URL of the Slidev presentation (required) | - |
-| `--project <path>` | | Path to Slidev project directory (for source mapping) | - |
-| `--pages <range>` | `-p` | Page range to check (e.g., 1-10) | All pages |
-| `--format <formats>` | `-f` | Output formats (console,html,json) | console |
-| `--output <dir>` | `-o` | Output directory | ./reports |
-| `--threshold <n>` | `-t` | Overflow detection threshold (px) | 1 |
-| `--wait <ms>` | `-w` | Wait time after page transition (ms) | 0 |
-| `--viewport <size>` | | Viewport size | 1920x1080 |
-| `--browser <name>` | `-b` | Browser (chromium/firefox/webkit) | chromium |
-| `--headless` | | Headless mode | true |
-| `--verbose` | `-v` | Output detailed logs | false |
-| `--fail-on-issues` | | Exit with code 1 if issues found | false |
-| `--concurrency <n>` | | Number of parallel checks | 4 |
-| `--config <path>` | `-c` | Path to configuration file | - |
+| `--url <url>` | `-u` | Slidev server URL (required) | - |
+| `--project <path>` | | Project path for source mapping | - |
+| `--verbose` | `-v` | Show detailed issue information | false |
+| `--pages <range>` | `-p` | Check specific pages (e.g., 1-10) | all |
+| `--format <type>` | `-f` | Output: console, json, html | console |
+| `--threshold <n>` | `-t` | Overflow threshold in px | 1 |
+| `--fail-on-issues` | | Exit code 1 if issues found (CI) | false |
 
-## Configuration
+## Common Fixes
 
-### Configuration File Example
+| Issue | Fix |
+|-------|-----|
+| Long title | Shorten or split into title + subtitle |
+| Too many bullets | Split into multiple slides |
+| Large image | Add width constraint: `{width=500px}` |
+| Wide table | Reduce columns or split |
+| Long code block | Use smaller font or split |
 
-`checker.config.js`:
+## Configuration File
+
+Create `checker.config.js`:
+
 ```javascript
 export default {
   url: 'http://localhost:3030',
-  format: ['console', 'html'],
-  output: './reports',
+  format: ['console', 'json'],
   threshold: 1,
-  wait: 1000,
-  concurrency: 1,  // Use 1 for stable results
-  exclude: [
-    '.slidev-page-indicator',
-    '.slidev-nav'
-  ],
-
-  screenshot: {
-    enabled: true,
-    fullPage: false,
-    highlightIssues: true,
-    outputDir: './screenshots'
-  }
+  exclude: ['.slidev-page-indicator', '.slidev-nav']
 };
 ```
 
-`checker.config.json`:
-```json
-{
-  "url": "http://localhost:3030",
-  "format": ["console", "html"],
-  "output": "./reports",
-  "threshold": 1,
-  "wait": 1000,
-  "concurrency": 1,
-  "exclude": [
-    ".slidev-page-indicator",
-    ".slidev-nav"
-  ],
-  "screenshot": {
-    "enabled": true,
-    "fullPage": false,
-    "highlightIssues": true,
-    "outputDir": "./screenshots"
-  }
-}
+Run with:
+```bash
+slidev-overflow-checker --config ./checker.config.js
 ```
 
-## Detected Issues
+## CI/CD Integration
 
-### 1. Text Overflow (Horizontal)
-- Text extending beyond its container horizontally
-- Long lines that exceed the slide width
-- Content hidden by `overflow: hidden` or `text-overflow: ellipsis`
-- Displays the actual overflowing text content
+```yaml
+# GitHub Actions example
+- name: Check Slidev overflow
+  run: |
+    npx slidev dev &
+    sleep 10
+    slidev-overflow-checker --url http://localhost:3030 --fail-on-issues
+```
 
-### 2. Element Overflow (Positional)
-- Elements exceeding slide boundaries (top, bottom, left, right)
-- Images, lists, paragraphs positioned outside visible area
-- Content cut off at slide edges
-- Shows overflow direction and amount in pixels
+## Why This Tool?
 
-### 3. Scrollbar Appearance
-- Unintended vertical/horizontal scrollbar appearance
-- Containers that have become scrollable
+LLMs are good at generating text, but **bad at validating visual layout**.
+
+When AI generates Slidev presentations:
+- Text overflows containers
+- Elements exceed slide boundaries
+- Unintended scrollbars appear
+
+These issues **cannot be detected from Markdown alone** - they only appear when rendered.
+
+This tool bridges the gap by:
+1. Rendering slides in a real browser
+2. Measuring layout breakage in pixels
+3. Returning machine-readable signals for AI to act on
 
 ## Requirements
 
-- Node.js 18.x or higher
-- Slidev 0.40.x or higher
-
-## Development
-
-### Setup
-
-```bash
-git clone https://github.com/mizuirorivi/slidev-overflow-checker.git
-cd slidev-overflow-checker
-npm install
-```
-
-### Build
-
-```bash
-npm run build
-```
-
-### Test
-
-```bash
-npm test
-```
-
-### Local Execution
-
-```bash
-npm run dev -- --url http://localhost:3030
-```
+- Node.js 18+
+- Slidev 0.40+
 
 ## License
 
 MIT
 
-## Contributing
-
-Issues and Pull Requests are welcome.
-
-## Related Links
+## Links
 
 - [Slidev](https://sli.dev/)
 - [Playwright](https://playwright.dev/)
+- [GitHub](https://github.com/mizuirorivi/slidev-overflow-checker)
