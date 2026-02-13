@@ -138,11 +138,11 @@ export class PageNavigator {
   }
 
   /**
-   * Wait for slide to load (proportional wait based on slide count)
+   * Wait for slide to load and all transitions to complete
    */
   async waitForSlideLoad(): Promise<void> {
     try {
-      // Step 1: Wait until page is visible
+      // Step 1: Wait until at least one slide page is visible
       await this.page.waitForFunction(() => {
         const allSlidePages = document.querySelectorAll('.slidev-page');
         return Array.from(allSlidePages).some((page: Element) => {
@@ -151,21 +151,26 @@ export class PageNavigator {
         });
       }, { timeout: 3000 });
 
-      // Step 2: Get total slides (if not already obtained)
-      if (!this.totalSlides) {
-        this.totalSlides = await this.getTotalSlides();
-      }
+      // Step 2: Wait for CSS transitions to complete
+      // Slidev uses Vue <Transition> which adds *-enter-active, *-leave-active classes
+      // during slide transitions. Measuring elements during transitions produces
+      // incorrect positions (elements are mid-animation, shifted from final position).
+      await this.page.waitForFunction(() => {
+        const allSlidePages = document.querySelectorAll('.slidev-page');
+        for (const page of Array.from(allSlidePages)) {
+          const cls = page.className;
+          if (cls.includes('-enter-active') ||
+              cls.includes('-leave-active') ||
+              cls.includes('-enter-from') ||
+              cls.includes('-leave-to')) {
+            return false;
+          }
+        }
+        return true;
+      }, { timeout: 5000 });
 
-      // Calculate wait time based on slide count
-      // Base: 600ms
-      // More slides = shorter wait time per slide
-      // Example: 10 slides or less = 600ms, 20 slides = 500ms, 40 slides = 400ms, 100 slides = 300ms
-      let waitTime = 600;
-      if (this.totalSlides > 10) {
-        waitTime = Math.max(300, 600 - Math.floor((this.totalSlides - 10) / 10) * 50);
-      }
-
-      await this.page.waitForTimeout(waitTime);
+      // Step 3: Brief settling time for layout reflow after transition
+      await this.page.waitForTimeout(100);
     } catch (error) {
       // Continue even on error
     }
@@ -176,9 +181,6 @@ export class PageNavigator {
       await this.page.waitForTimeout(minWait);
     }
   }
-
-  private totalSlides?: number;
-
   /**
    * Check if page is ready
    */
